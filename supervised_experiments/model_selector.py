@@ -5,10 +5,11 @@ from supervised_experiments.models.multi_faces_resnet import ResNet, FaceAttribu
 from supervised_experiments.models.resnet_dilated import ResnetDilated
 from supervised_experiments.models.cityscapes import DeepLabHead
 from supervised_experiments.models import resnet_cityscapes
+from supervised_experiments.models.multi_label_models import ResNet_Multi_Class
 import torch.nn as nn
 
 
-def get_model(dataset, tasks, device, parallel=False, add_dropout=False, no_dropout=False):
+def get_model(dataset, tasks, device, parallel=False, add_dropout=False, no_dropout=False, multi_label=False):
     data = dataset
     if 'mnist' in data:
         model = {}
@@ -40,7 +41,7 @@ def get_model(dataset, tasks, device, parallel=False, add_dropout=False, no_drop
             model["depth"].to(device)
         return model
 
-    if 'celeba' in data:
+    if 'celeba' in data and multi_label==False:
         model = {}
         model['rep'] = ResNet(BasicBlock, [2, 2, 2, 2], dropout=add_dropout)
         if parallel:
@@ -53,3 +54,33 @@ def get_model(dataset, tasks, device, parallel=False, add_dropout=False, no_drop
             model[t].to(device)
         return model
 
+    if 'nih' in data:
+        model = {}
+        model['rep'] = ResNet(BasicBlock, [2, 2, 2, 2], dropout=add_dropout)
+        if parallel:
+            model['rep'] = nn.DataParallel(model['rep'])
+        model['rep'].to(device)
+        for t in tasks:
+            model[t] = FaceAttributeDecoder()
+            if parallel:
+                model[t] = nn.DataParallel(model[t])
+            model[t].to(device)
+        return model    
+
+    if 'celeba' in data and multi_label==True:
+        model = ResNet_Multi_Class(classCount = len(tasks))
+        model.to(device)
+        return model
+
+    if 'cov_nih' in data:
+        model = {}
+        model['rep'] = ResNet(BasicBlock, [2, 2, 2, 2], dropout=add_dropout)
+        if parallel:
+            model['rep'] = nn.DataParallel(model['rep'])
+        model['rep'].to(device)
+        for t in tasks:
+            model[t] = FaceAttributeDecoder()
+            if parallel:
+                model[t] = nn.DataParallel(model[t])
+            model[t].to(device)
+        return model    
