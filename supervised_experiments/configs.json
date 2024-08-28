@@ -12,15 +12,32 @@
     },
 
     "celeba": {
-        "path": "/data/celeba/",
+        "path": "/scratch/mariamma/celeba/data/celeba/",
         "tasks": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
                       "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39"],
         "img_rows": 64,
         "img_cols": 64
     },
 
+    "nih": {
+        "path": "/scratch/mariamma/xraysetu/dataset/nih_data/",
+        "tasks": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"],
+        "img_rows": 512,
+        "img_cols": 512
+    },
+
+    "cov_nih": {
+        "path": "/scratch/mariamma/xraysetu/dataset/nih_data/",
+        "tasks": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"],
+        "img_rows": 512,
+        "img_cols": 512
+    },
+
     "utils": {
-        "model_storage": "/data/saved_models/",
-        "results_storage": "/data/saved_results/"
+        "model_storage_old": "/scratch/mariamma/celeba/unitary_scalarization/saved_models/",
+        "model_storage": "/scratch/mariamma/mtl/nih/saliency_train/saved_models/",
+        "results_storage_old": "/scratch/mariamma/mtl/nih/saliency_mtl/",
+        "results_storage": "/scratch/mariamma/mtl/nih/saliency_train/results_folder/",
+        "profile_storage": "/scratch/mariamma/mtl/nih/saliency_train/profiling/"
     }
 }
