@@ -6,8 +6,9 @@ import functools
 
 
 class RunningMetric(object):
-    def __init__(self, metric_type, n_classes =None):
+    def __init__(self, metric_type, n_classes =None, model_type="mtl"):
         self._metric_type = metric_type
+        self.model_type = model_type
         if metric_type == 'ACC':
             self.accuracy = 0.0
             self.num_updates = 0.0
@@ -35,7 +36,14 @@ class RunningMetric(object):
             self.confusion_matrix = torch.zeros((self._n_classes, self._n_classes))
 
     def update(self, pred, gt):
-        if self._metric_type == 'ACC':
+        if self._metric_type == 'ACC' and self.model_type == "multi_label":
+            predictions = torch.ge(pred, 0.5)
+            predictions = predictions.long()
+            # predictions = pred.data.max(1, keepdim=True)[1]
+            self.accuracy += (predictions.eq(gt.data.view_as(predictions)).sum())
+            self.num_updates += predictions.shape[0]
+
+        if self._metric_type == 'ACC' and self.model_type != "multi_label":
             predictions = pred.data.max(1, keepdim=True)[1]
             self.accuracy += (predictions.eq(gt.data.view_as(predictions)).sum())
             self.num_updates += predictions.shape[0]
@@ -73,7 +81,7 @@ class RunningMetric(object):
             return {'acc': acc, 'mIOU': iou.mean()}
 
 
-def get_metrics(dataset, tasks):
+def get_metrics(dataset, tasks, model_type="mtl"):
     # Returns a dictionary of metrics, and a function whose output aggregates all metrics
     # model_saver is a dict of functions of the metric dict: we save a model each time a larger value of this function
     # is attained
@@ -108,8 +116,22 @@ def get_metrics(dataset, tasks):
 
     if 'celeba' in dataset:
         for t in tasks:
-            met[t] = RunningMetric(metric_type = 'ACC')
+            met[t] = RunningMetric(metric_type = 'ACC', model_type=model_type)
         aggregators["avg"] = lambda met_dict: np.array([cmet['acc'].item() for cmet in met_dict.values()]).mean()
         aggregators["min"] = lambda met_dict: np.min(np.array([cmet['acc'].item() for cmet in met_dict.values()]))
         model_saver["best"] = aggregators["avg"]
+
+    if 'nih' in dataset:
+        for t in tasks:
+            met[t] = RunningMetric(metric_type = 'ACC')
+        aggregators["avg"] = lambda met_dict: np.array([cmet['acc'].item() for cmet in met_dict.values()]).mean()
+        aggregators["min"] = lambda met_dict: np.min(np.array([cmet['acc'].item() for cmet in met_dict.values()]))
+        model_saver["best"] = aggregators["avg"]    
+
+    if 'cov_nih' in dataset:
+        for t in tasks:
+            met[t] = RunningMetric(metric_type = 'ACC')
+        aggregators["avg"] = lambda met_dict: np.array([cmet['acc'].item() for cmet in met_dict.values()]).mean()
+        aggregators["min"] = lambda met_dict: np.min(np.array([cmet['acc'].item() for cmet in met_dict.values()]))
+        model_saver["best"] = aggregators["avg"]         
     return met, aggregators, model_saver

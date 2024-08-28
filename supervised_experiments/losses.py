@@ -69,3 +69,15 @@ def get_loss(dataset, tasks):
         for t in tasks:
             loss_fn[t] = nll
         return loss_fn
+
+    if 'nih' in dataset:
+        loss_fn = {}
+        for t in tasks:
+            loss_fn[t] = nll
+        return loss_fn    
+
+    if 'cov_nih' in dataset:
+        loss_fn = {}
+        for t in tasks:
+            loss_fn[t] = nll
+        return loss_fn      

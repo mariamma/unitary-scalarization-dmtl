@@ -98,19 +98,47 @@ class ResNet(nn.Module):
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.layer4(out)
-        out = F.avg_pool2d(out, 4)
-        out = out.view(out.size(0), -1)
-        if self.dropout2 is not None:
-            out = self.dropout2(out)  # Absent in the original MGDA architecture, added to prevent overfitting.
+        # out = F.avg_pool2d(out, 4)
+        # out = out.view(out.size(0), -1)
+        # if self.dropout2 is not None:
+        #     out = self.dropout2(out)  # Absent in the original MGDA architecture, added to prevent overfitting.
         return out, mask
 
 
 class FaceAttributeDecoder(nn.Module):
     def __init__(self):
         super(FaceAttributeDecoder, self).__init__()
-        self.linear = nn.Linear(2048, 2)
+        # self.linear = nn.Linear(2048, 2)
+        # self.linear = nn.Linear(131072, 2)
+        self.transition_layer = nn.Conv2d(512, 512, kernel_size=3, padding=1, stride=1, bias=False)
+        self.relu = nn.ReLU(inplace=True)
+        self.gap = nn.AvgPool2d(16, 16)
+        self.prediction_layer = nn.Sequential(nn.Linear(8192, 2))
+        self.gradients = None
     
     def forward(self, x, mask):
-        x = self.linear(x)
+        print(x.shape)
+        x = self.transition_layer(x)
+        x = self.relu(x)
+        h = x.register_hook(self.activations_hook)
+        x = self.gap(x)
+        x = x.view(x.size(0), -1)
+        x = self.prediction_layer(x)
+        # x = self.linear(x)
         out = F.log_softmax(x, dim=1)
-        return out, mask
+        return out, mask, x
+
+    # hook for the gradients of the activations
+    def activations_hook(self, grad):
+        self.gradients = grad
+
+    # method for the gradient extraction
+    def get_activations_gradient(self):
+        return self.gradients
+    
+    # method for the activation exctraction
+    def get_activations(self, x):
+        x = self.transition_layer(x)
+        x = self.relu(x)
+        return x
+            
