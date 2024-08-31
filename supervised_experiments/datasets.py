@@ -17,7 +17,8 @@ def global_transformer():
 
 
 def get_dataset(dataset, batch_size, configs, generator=None, worker_init_fn=None, train=True, 
-    corruption = None, severity=None, partial_dataset=False, nih_labels=[], whatsapp_data=False):
+    corruption = None, severity=None, partial_dataset=False, nih_labels=[], whatsapp_data=False,
+    image_name = False, covid_img_only = False):
 
     if 'mnist' in dataset:
         if train:
@@ -102,7 +103,8 @@ def get_dataset(dataset, batch_size, configs, generator=None, worker_init_fn=Non
             # Return test split only for evaluation of a stored model.
             test_dst = CovidNIHDatasetPartial(root=configs['cov_nih']['path'], is_transform=True, split='test',
                              img_size=(configs['cov_nih']['img_rows'], configs['cov_nih']['img_cols']),
-                             nih_labels=nih_labels, augmentations=None, whatsapp_data=whatsapp_data)
+                             nih_labels=nih_labels, augmentations=None, whatsapp_data=whatsapp_data,
+                             image_name = image_name, covid_img_only = covid_img_only)
             test_loader = torch.utils.data.DataLoader(test_dst, batch_size=batch_size, num_workers=4,
                                                       generator=generator, worker_init_fn=worker_init_fn)
             return test_loader                    

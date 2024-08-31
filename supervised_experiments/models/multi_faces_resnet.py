@@ -117,14 +117,13 @@ class FaceAttributeDecoder(nn.Module):
         self.gradients = None
     
     def forward(self, x, mask):
-        print(x.shape)
         x = self.transition_layer(x)
         x = self.relu(x)
-        h = x.register_hook(self.activations_hook)
+        if x.requires_grad == True:
+            h = x.register_hook(self.activations_hook)
         x = self.gap(x)
         x = x.view(x.size(0), -1)
         x = self.prediction_layer(x)
-        # x = self.linear(x)
         out = F.log_softmax(x, dim=1)
         return out, mask, x
 

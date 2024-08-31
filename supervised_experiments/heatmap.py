@@ -3,6 +3,7 @@ import torch
 import json
 import numpy as np
 import random
+import os
 import supervised_experiments.model_selector as model_selector
 from supervised_experiments.utils import create_logger
 import supervised_experiments.datasets as datasets
@@ -32,6 +33,42 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
+def create_heatmap(model, val_rep, t, image_name_path, heatmap_folder):
+    out_t, _, _ = model[t](val_rep, None)
+    
+    out_t[0][1].backward(retain_graph=True)
+    gradients = model[t].get_activations_gradient()
+    activations = model[t].get_activations(val_rep).detach()
+    
+    # weight the channels by corresponding gradients
+    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+    for i in range(activations.shape[1]):
+        activations[:, i, :, :] *= pooled_gradients[i]
+
+    # average the channels of the activations
+    heatmap = torch.mean(activations, dim=1).squeeze()
+    # relu on top of the heatmap
+    # expression (2) in https://arxiv.org/pdf/1610.02391.pdf
+    # heatmap = np.maximum(heatmap, 0)
+    heatmap = torch.nn.functional.relu(heatmap)
+    # normalize the heatmap
+    heatmap /= torch.max(heatmap)
+    
+    image_name_list = image_name_path.split('/')
+    image_name = image_name_list[1]
+    print("Heatmap : ", heatmap.shape)
+    if ".png" in image_name:
+        image_name_pt = image_name.replace(".png", ".pt")
+    elif ".jpg" in image_name:
+        image_name_pt = image_name.replace(".jpg", ".pt")
+    elif ".jpeg" in image_name:
+        image_name_pt = image_name.replace(".jpeg", ".pt")
+    elif ".JPG" in image_name:
+        image_name_pt = image_name.replace(".JPG", ".pt")    
+    torch.save(heatmap, os.path.join(heatmap_folder, image_name_pt.replace("/","_")))    
+    return 
+
+
 def generate_heatmap(args, random_seed):
     # Set random seeds.
     torch.manual_seed(random_seed)
@@ -59,8 +96,20 @@ def generate_heatmap(args, random_seed):
     test_loader = datasets.get_dataset(args.dataset, args.batch_size, configs,
                                        generator=g, worker_init_fn=seed_worker, train=False,
                                        partial_dataset=args.partial_dataset, nih_labels=nih_labels,
-                                       whatsapp_data = True)        
+                                       whatsapp_data = True, image_name = True,
+                                       covid_img_only = True)        
 
+    
+    foldername = args.net_basename
+    print("Foldername : {}".format(foldername))
+    os.makedirs(os.path.join(args.heatmap_dir, foldername))
+
+    foldername_path = os.path.join(args.heatmap_dir, foldername)
+    heatmap_orig_folder = os.path.join(foldername_path, "original/")
+    heatmap_whatsapp_folder = os.path.join(foldername_path, "whatsapp/")
+
+    os.makedirs(heatmap_orig_folder)
+    os.makedirs(heatmap_whatsapp_folder)
 
     # Evaluate the model on the test set.
     model['rep'].eval()
@@ -68,30 +117,25 @@ def generate_heatmap(args, random_seed):
         model[m].eval()
 
     for batch_val in tqdm(test_loader):
-        test_images = batch_val[0].to(DEVICE)
+        image_name =  batch_val[0]
+        test_images = batch_val[1].to(DEVICE)
         test_images = test_images.requires_grad_(True)    
-        corrupt_imgs = batch_val[1].to(DEVICE)
+        corrupt_imgs = batch_val[2].to(DEVICE)
         corrupt_imgs = corrupt_imgs.requires_grad_(True)    
-        test_labels = batch_val[2].to(torch.long).to(DEVICE)
+        test_labels = batch_val[3].to(torch.long).to(DEVICE)
+
+        print("Image name : ", image_name)
+        print("Test labels : ", test_labels)
 
         val_rep, _ = model['rep'](test_images, None)
         val_rep_corrupt, _ = model['rep'](corrupt_imgs, None)   
 
-        for idt, t in enumerate(tasks):
-            out_t, _, _ = model[t](val_rep, None)
-            print("Out_t : ", out_t)
-            out_t[0][1].backward(retain_graph=True)
-            gradients = model[t].get_activations_gradient()
-            activations = model[t].get_activations(val_rep).detach()
-            print("Gradient : ", gradients.shape)
-            print("Activations : ", activations.shape)
-
-
-
-
-
+        if test_labels[0][-1] == 1:
+            t = '15'
+            create_heatmap(model, val_rep, t, image_name[0], heatmap_orig_folder)
+            create_heatmap(model, val_rep_corrupt, t, image_name[0], heatmap_whatsapp_folder)
+            
     return
-
 
 
 def main():
@@ -108,10 +152,10 @@ def main():
     parser.add_argument('--multi_label', type=bool, default=True, help='multi_label_flag')
     parser.add_argument('--nih_labels', type=str, default=True, help='NIH labels to be used')
     parser.add_argument('--partial_dataset', type=bool, default=True, help='Use only part of NIH dataset')
+    parser.add_argument('--heatmap_dir', type=str, default="/scratch/mariamma/mtl/heatmap/", help='Heatmap directory')
     args = parser.parse_args()
     generate_heatmap(args, args.random_seed)
     return
-
 
 
 main()    
