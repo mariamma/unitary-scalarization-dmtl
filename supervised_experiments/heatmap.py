@@ -35,8 +35,10 @@ def seed_worker(worker_id):
 
 def create_heatmap(model, val_rep, t, image_name_path, heatmap_folder):
     out_t, _, _ = model[t](val_rep, None)
-    
-    out_t[0][1].backward(retain_graph=True)
+    if out_t[0][1] > out_t[0][0]:
+        out_t[0][1].backward(retain_graph=True)
+    else:
+        out_t[0][0].backward(retain_graph=True)
     gradients = model[t].get_activations_gradient()
     activations = model[t].get_activations(val_rep).detach()
     
@@ -56,7 +58,7 @@ def create_heatmap(model, val_rep, t, image_name_path, heatmap_folder):
     
     image_name_list = image_name_path.split('/')
     image_name = image_name_list[1]
-    print("Heatmap : ", heatmap.shape)
+    # print("Heatmap : ", heatmap.shape)
     if ".png" in image_name:
         image_name_pt = image_name.replace(".png", ".pt")
     elif ".jpg" in image_name:
@@ -124,8 +126,8 @@ def generate_heatmap(args, random_seed):
         corrupt_imgs = corrupt_imgs.requires_grad_(True)    
         test_labels = batch_val[3].to(torch.long).to(DEVICE)
 
-        print("Image name : ", image_name)
-        print("Test labels : ", test_labels)
+        # print("Image name : ", image_name)
+        # print("Test labels : ", test_labels)
 
         val_rep, _ = model['rep'](test_images, None)
         val_rep_corrupt, _ = model['rep'](corrupt_imgs, None)   
