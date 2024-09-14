@@ -30,11 +30,24 @@
         "path": "/scratch/mariamma/xraysetu/dataset/nih_data/",
         "tasks": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"],
         "img_rows": 512,
-        "img_cols": 512
+        "img_cols": 512,
+        "nih_lung_seg_path": "/data/mariammaa/dataset/nih_lung_segment/"
+    },
+
+    "chexphoto": {
+        "path": "/scratch/mariamma/xraysetu/dataset/chexphoto/chexphoto_data/",
+        "train_filelist": "/scratch/mariamma/xraysetu/dataset/chexphoto/chexphoto_data/CheXphoto-v1.0/train_chex_photo.csv",
+        "val_filelist": "/scratch/mariamma/xraysetu/dataset/chexphoto/chexphoto_data/CheXphoto-v1.0/valid_chex_photo.csv",
+        "tasks": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"],
+        "img_rows": 512,
+        "img_cols": 512,
+        "model_storage": "/scratch/mariamma/mtl/nih/saliency_train/chexphoto/saved_models/",
+        "results_storage": "/scratch/mariamma/mtl/nih/saliency_train/chexphoto/results_folder/",
+        "lung_segment_path": "/data/mariammaa/dataset/covidx3_upsampled_lung_segment/test",
+        "test_results": "/data/mariammaa/chexphoto/test_results/"
     },
 
     "utils": {
-        "model_storage_old": "/scratch/mariamma/celeba/unitary_scalarization/saved_models/",
         "model_storage": "/scratch/mariamma/mtl/nih/saliency_train/saved_models/",
         "results_storage_old": "/scratch/mariamma/mtl/nih/saliency_mtl/",
         "results_storage": "/scratch/mariamma/mtl/nih/saliency_train/results_folder/",

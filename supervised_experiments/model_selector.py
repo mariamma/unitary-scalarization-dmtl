@@ -84,3 +84,16 @@ def get_model(dataset, tasks, device, parallel=False, add_dropout=False, no_drop
                 model[t] = nn.DataParallel(model[t])
             model[t].to(device)
         return model    
+
+    if 'chexphoto' in data:
+        model = {}
+        model['rep'] = ResNet(BasicBlock, [2, 2, 2, 2], dropout=add_dropout)
+        if parallel:
+            model['rep'] = nn.DataParallel(model['rep'])
+        model['rep'].to(device)
+        for t in tasks:
+            model[t] = FaceAttributeDecoder()
+            if parallel:
+                model[t] = nn.DataParallel(model[t])
+            model[t].to(device)
+        return model        

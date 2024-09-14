@@ -133,5 +133,12 @@ def get_metrics(dataset, tasks, model_type="mtl"):
             met[t] = RunningMetric(metric_type = 'ACC')
         aggregators["avg"] = lambda met_dict: np.array([cmet['acc'].item() for cmet in met_dict.values()]).mean()
         aggregators["min"] = lambda met_dict: np.min(np.array([cmet['acc'].item() for cmet in met_dict.values()]))
-        model_saver["best"] = aggregators["avg"]         
+        model_saver["best"] = aggregators["avg"]       
+
+    if 'chexphoto' in dataset:
+        for t in tasks:
+            met[t] = RunningMetric(metric_type = 'ACC')
+        aggregators["avg"] = lambda met_dict: np.array([cmet['acc'].item() for cmet in met_dict.values()]).mean()
+        aggregators["min"] = lambda met_dict: np.min(np.array([cmet['acc'].item() for cmet in met_dict.values()]))
+        model_saver["best"] = aggregators["avg"]             
     return met, aggregators, model_saver
