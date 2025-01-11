@@ -10,6 +10,9 @@ from supervised_experiments.loaders.nih_loader import NIHDataset
 from supervised_experiments.loaders.nih_partial_loader import NIHDatasetPartial
 from supervised_experiments.loaders.covid_nih_partial_loader import CovidNIHDatasetPartial
 from supervised_experiments.loaders.covid_chexphoto_loader import CovidChexphotoDatasetGenerator
+from supervised_experiments.loaders.covid_chexphoto_loader_rand import CovidChexphotoRandDatasetGenerator
+from supervised_experiments.loaders.cov_nih_partial_loader_rand import CovidNIHRandDatasetGenerator
+from supervised_experiments.loaders.cov_chexpert_small_loader import CovidChexpertDatasetGenerator
 import os
 
 def global_transformer():
@@ -20,7 +23,7 @@ def global_transformer():
 def get_dataset(dataset, batch_size, configs, generator=None, worker_init_fn=None, train=True, 
     corruption = None, severity=None, partial_dataset=False, nih_labels=[], whatsapp_data=False,
     image_name = False, covid_img_only = False, lung_seg_imagename=False, chexphoto_labels = [],
-    train_lung_segments = False):
+    train_lung_segments = False, train_trim_ratio = 1):
 
     if 'mnist' in dataset:
         if train:
@@ -86,7 +89,7 @@ def get_dataset(dataset, batch_size, configs, generator=None, worker_init_fn=Non
                                                       generator=generator, worker_init_fn=worker_init_fn)
             return test_loader
 
-    if 'cov_nih' in dataset:
+    if 'cov_nih' in dataset and train_trim_ratio == 1:
         if train:
             # Return training + validation split for training loop.
             train_dst = CovidNIHDatasetPartial(root=configs['cov_nih']['path'], is_transform=True, split='train',
@@ -117,6 +120,33 @@ def get_dataset(dataset, batch_size, configs, generator=None, worker_init_fn=Non
                                                       generator=generator, worker_init_fn=worker_init_fn)
             return test_loader                    
             
+    if 'cov_nih' in dataset and train_trim_ratio < 1:
+        if train:
+            # Return training + validation split for training loop.
+            train_dst = CovidNIHRandDatasetGenerator(img_dir=configs['cov_nih']['train_data'], 
+                            img_file_list=configs['cov_nih']['train_filelist'], split='train',
+                               img_size=(configs['cov_nih']['img_rows'], configs['cov_nih']['img_cols']),
+                               nih_labels=nih_labels, img_ratio=train_trim_ratio)
+            val_dst = CovidNIHRandDatasetGenerator(img_dir=configs['cov_nih']['val_data'], 
+                            img_file_list=configs['cov_nih']['val_filelist'], split='val',
+                             img_size=(configs['cov_nih']['img_rows'], configs['cov_nih']['img_cols']),
+                             nih_labels=nih_labels, img_ratio=train_trim_ratio)
+
+            train_loader = torch.utils.data.DataLoader(train_dst, batch_size=batch_size, shuffle=True, num_workers=4,
+                                                       generator=generator, worker_init_fn=worker_init_fn)
+            val_loader = torch.utils.data.DataLoader(val_dst, batch_size=batch_size, num_workers=4,
+                                                     generator=generator, worker_init_fn=worker_init_fn)
+            return train_loader, val_loader
+        else:
+            # Return test split only for evaluation of a stored model.
+            test_dst = CovidNIHRandDatasetGenerator(img_dir=configs['cov_nih']['val_data'], 
+                            img_file_list=configs['cov_nih']['val_filelist'], split='test',
+                             img_size=(configs['cov_nih']['img_rows'], configs['cov_nih']['img_cols']),
+                             nih_labels=nih_labels, whatsapp_data=whatsapp_data,
+                             image_names = image_name, covid_only = covid_img_only, img_ratio=train_trim_ratio)
+            test_loader = torch.utils.data.DataLoader(test_dst, batch_size=batch_size, num_workers=4,
+                                                      generator=generator, worker_init_fn=worker_init_fn)
+            return test_loader   
 
     if 'nih' in dataset and partial_dataset==False:
         if train:
@@ -166,7 +196,7 @@ def get_dataset(dataset, batch_size, configs, generator=None, worker_init_fn=Non
                                                       generator=generator, worker_init_fn=worker_init_fn)
             return test_loader   
 
-    if 'chexphoto' in dataset:
+    if 'chexphoto' in dataset and train_trim_ratio==1:
         if train:
             # Return training + validation split for training loop.
             train_dst = CovidChexphotoDatasetGenerator(img_dir=configs['chexphoto']['path'], 
@@ -195,4 +225,63 @@ def get_dataset(dataset, batch_size, configs, generator=None, worker_init_fn=Non
                                                       generator=generator, worker_init_fn=worker_init_fn)
             return test_loader  
 
+    if 'chexphoto' in dataset and train_trim_ratio<1:
+        if train:
+            # Return training + validation split for training loop.
+            train_dst = CovidChexphotoRandDatasetGenerator(img_dir=configs['chexphoto']['path'], 
+                img_file_list=configs['chexphoto']['train_filelist'], 
+                img_size=(configs['chexphoto']['img_rows'], configs['chexphoto']['img_cols']),
+                chexphoto_labels = chexphoto_labels, split = "train", whatsapp_data=False,
+                img_ratio = train_trim_ratio) 
+        
+            val_dst = CovidChexphotoRandDatasetGenerator(img_dir=configs['chexphoto']['path'], 
+                img_file_list=configs['chexphoto']['val_filelist'], 
+                img_size=(configs['chexphoto']['img_rows'], configs['chexphoto']['img_cols']),
+                chexphoto_labels = chexphoto_labels, split = "val", whatsapp_data=False,
+                img_ratio = train_trim_ratio) 
+
+            train_loader = torch.utils.data.DataLoader(train_dst, batch_size=batch_size, shuffle=True, num_workers=4,
+                                                       generator=generator, worker_init_fn=worker_init_fn)
+            val_loader = torch.utils.data.DataLoader(val_dst, batch_size=batch_size, num_workers=4,
+                                                     generator=generator, worker_init_fn=worker_init_fn)
+            return train_loader, val_loader
+        else:
+            # Return test split only for evaluation of a stored model.
+            test_dst = CovidChexphotoRandDatasetGenerator(img_dir=configs['chexphoto']['path'], 
+                img_file_list=configs['chexphoto']['val_filelist'], 
+                img_size=(configs['chexphoto']['img_rows'], configs['chexphoto']['img_cols']),
+                chexphoto_labels = chexphoto_labels, split = "test", whatsapp_data=whatsapp_data,
+                image_names=image_name, covid_only=covid_img_only, img_ratio = train_trim_ratio) 
+            test_loader = torch.utils.data.DataLoader(test_dst, batch_size=batch_size, num_workers=4,
+                                                      generator=generator, worker_init_fn=worker_init_fn)
+            return test_loader  
    
+
+    if 'chexpert' in dataset:
+        if train:
+            # Return training + validation split for training loop.
+            train_dst = CovidChexpertDatasetGenerator(img_dir=configs['chexpert']['path'], 
+                img_file_list=configs['chexpert']['train_filelist'], 
+                img_size=(configs['chexpert']['img_rows'], configs['chexpert']['img_cols']),
+                chexpert_labels = chexphoto_labels, split = "train", whatsapp_data=False) 
+        
+            val_dst = CovidChexpertDatasetGenerator(img_dir=configs['chexpert']['path'], 
+                img_file_list=configs['chexpert']['val_filelist'], 
+                img_size=(configs['chexpert']['img_rows'], configs['chexpert']['img_cols']),
+                chexpert_labels = chexphoto_labels, split = "val", whatsapp_data=False) 
+
+            train_loader = torch.utils.data.DataLoader(train_dst, batch_size=batch_size, shuffle=True, num_workers=4,
+                                                       generator=generator, worker_init_fn=worker_init_fn)
+            val_loader = torch.utils.data.DataLoader(val_dst, batch_size=batch_size, num_workers=4,
+                                                     generator=generator, worker_init_fn=worker_init_fn)
+            return train_loader, val_loader
+        else:
+            # Return test split only for evaluation of a stored model.
+            test_dst = CovidChexpertDatasetGenerator(img_dir=configs['chexpert']['path'], 
+                img_file_list=configs['chexpert']['val_filelist'], 
+                img_size=(configs['chexpert']['img_rows'], configs['chexpert']['img_cols']),
+                chexpert_labels = chexphoto_labels, split = "test", whatsapp_data=whatsapp_data,
+                image_names=image_name, covid_only=covid_img_only) 
+            test_loader = torch.utils.data.DataLoader(test_dst, batch_size=batch_size, num_workers=4,
+                                                      generator=generator, worker_init_fn=worker_init_fn)
+            return test_loader  
