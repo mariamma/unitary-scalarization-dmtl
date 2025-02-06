@@ -54,16 +54,19 @@
     },
 
     "chexpert": {
-        "path": "/data/mariammaa/chexpert/",
-        "train_filelist": "/data/mariammaa/chexpert/CheXpert-v1.0-small/train.csv",
-        "val_filelist": "/data/mariammaa/chexpert/CheXpert-v1.0-small/valid.csv",
+        "path": "/data/mariammaa/azure_chexpert/chexpertchestxrays-u20210408/",
+        "train_filelist": "/data/mariammaa/azure_chexpert/chexpertchestxrays-u20210408/CheXpert-v1.0/train.csv",
+        "val_filelist": "/data/mariammaa/azure_chexpert/chexpertchestxrays-u20210408/CheXpert-v1.0/valid.csv",
         "tasks": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"],
         "img_rows": 512,
         "img_cols": 512,
-        "model_storage": "/data/mariammaa/chexpert/saved_models/",
-        "results_storage": "/data/mariammaa/chexpert/results_folder/",
+        "model_storage": "/data/mariammaa/chexpert_large/saved_models/",
+        "results_storage": "/data/mariammaa/chexpert_large/results_folder/",
         "lung_segment_path": "/data/mariammaa/dataset/covidx3_upsampled_lung_segment/test/",
-        "test_results": "/data/mariammaa/chexpert/test_results/"
+        "test_results": "/data/mariammaa/chexpert_large/test_results/",
+        "path_old": "/data/mariammaa/chexpert/",
+        "train_filelist_old": "/data/mariammaa/chexpert/CheXpert-v1.0-small/train.csv",
+        "val_filelist_old": "/data/mariammaa/chexpert/CheXpert-v1.0-small/valid.csv"
     },
 
     "utils": {

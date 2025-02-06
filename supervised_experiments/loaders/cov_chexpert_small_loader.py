@@ -87,6 +87,7 @@ class CovidChexpertDatasetGenerator(Dataset):
         # print(df.head())
 
         df = df[df['Frontal/Lateral'] == 'Frontal']
+        df = df[df['AP/PA'] == 'AP']
         for idx, row in df.iterrows():
                 
             imagePath = os.path.join(pathImageDirectory, row['Path'])

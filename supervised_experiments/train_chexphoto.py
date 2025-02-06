@@ -22,12 +22,6 @@ from optimizers.mgda import MGDA
 from optimizers.rlw import RLW
 from optimizers.graddrop import GradDrop
 from optimizers.baselines import Baseline
-from tqdm import tqdm
-
-CHEXPHOTO_LABELS = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly',
-                    'Lung Opacity', 'Lung Lesion', 'Edema', 'Consolidation', 
-                    'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 
-                    'Pleural Other', 'Fracture', 'Support Devices']
 
 
 def save_model(models, optimizer, scheduler, tasks, epoch, args, folder="saved_models/", name="best"):
@@ -60,7 +54,7 @@ def test_evaluator(args, test_loader, tasks, DEVICE, model, loss_fn, metric, agg
         num_test_batches = 0
         for batch_val in test_loader:
             test_images = batch_val[0].to(DEVICE)
-            if args.dataset == "chexpert":
+            if args.dataset == "chexphoto":
                 test_labels = batch_val[1].to(torch.long).to(DEVICE)
             else:    
                 test_labels = {t: batch_val[i+1].to(DEVICE) for i, t in enumerate(tasks)}
@@ -89,14 +83,14 @@ def train_multi_task(args, random_seed):
 
     logger = create_logger('Main')
     if not args.debug:
-        wandb.init(project="chexpert_small", group=args.label, config=args, reinit=True)
+        wandb.init(project="chexphoto_robustness", group=args.label, config=args, reinit=True)
         dropout_str = "" if not args.dropout else "-dropout"
         wandb.run.name = f"{args.task_labels}_{args.optimizer}{dropout_str}-lr:{args.lr}-wd:{args.weight_decay}_" + wandb.run.name
 
     with open(args.config_file) as config_params:
         configs = json.load(config_params)
 
-    data_labels = args.chexpert_labels.split("_")
+    data_labels = args.data_labels.split("_")
     data_labels = [int(i) for i in data_labels]
     
     task_labels = args.task_labels.split("_")
@@ -158,23 +152,22 @@ def train_multi_task(args, random_seed):
         losses_per_epoch = {t: 0.0 for t in tasks}
         n_iter = 0
         norm_sum_grads = 0.
-        for cidx, batch in enumerate(tqdm(train_loader)):
+        for cidx, batch in enumerate(train_loader):
             n_iter += 1
             # Read targets and images for the batch.
             images = batch[0].to(DEVICE)
-            if args.dataset == "chexpert":
+            if args.dataset == "chexphoto":
                 labels = batch[1].to(torch.long).to(DEVICE)
             else:    
                 labels = {t: batch[i+1].to(DEVICE) for i, t in enumerate(tasks)}
 
-            # print("Labels : ", labels)
             # Compute per-task losses.
             def losses_from_model(cmodel, average=False):
                 losses = []
                 rep, _ = cmodel['rep'](images, None)
                 for idx,t in enumerate(tasks):
                     out_t, _, _ = cmodel[t](rep, None)
-                    # print("Labels {} : {}".format(t, labels[:, int(t)]))
+                    
                     # the losses are averaged within the MTL optimizers, possibly after manipulations per datapoint
                     loss_t = loss_fn[t](out_t, labels[:, int(t)], average=average)
                     losses.append(loss_t)  # to backprop on
@@ -229,7 +222,7 @@ def train_multi_task(args, random_seed):
             num_val_batches = 0
             for batch_val in val_loader:
                 val_images = batch_val[0].to(DEVICE)
-                if args.dataset == "chexpert":
+                if args.dataset == "chexphoto":
                     labels_val = batch_val[1].to(torch.long).to(DEVICE)
                 else:    
                     labels_val = {t: batch_val[i+1].to(DEVICE) for i, t in enumerate(tasks)}
@@ -285,12 +278,12 @@ def train_multi_task(args, random_seed):
                 if args.store_models:
                     # Save (overwriting) any model that improves the average metric
                     save_model(model, optimizer, scheduler, tasks, epoch, args,
-                               folder=configs["chexpert"]["model_storage"], name=k)
+                               folder=configs["chexphoto"]["model_storage"], name=k)
 
         end = timer()
         print('Epoch ended in {}s'.format(end - start))
 
-    results_folder = configs["chexpert"]["results_storage"]
+    results_folder = configs["chexphoto"]["results_storage"]
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
     run_name = "debug" if args.debug else wandb.run.name
@@ -299,20 +292,20 @@ def train_multi_task(args, random_seed):
     # Save training/validation results.
     if args.store_models and (not args.time_measurement_exp):
         # Save last model.
-        save_model(model, optimizer, scheduler, tasks, epoch, args, folder=configs["chexpert"]["model_storage"],
+        save_model(model, optimizer, scheduler, tasks, epoch, args, folder=configs["chexphoto"]["model_storage"],
                    name="last")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--path', type=str, default='./dataset', help='Path to dataset folder')
-    parser.add_argument('--label', type=str, default='chexpert_small', help='wandb group')
-    parser.add_argument('--dataset', type=str, default='chexpert', help='which dataset to use',
-                        choices=['celeba', 'mnist', 'cityscapes', 'nih', 'cov_nih', 'chexphoto', 'chexpert'])
-    parser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
+    parser.add_argument('--path', type=str, default='./dataset', help='Path to dataset folder')
+    parser.add_argument('--label', type=str, default='', help='wandb group')
+    parser.add_argument('--dataset', type=str, default='', help='which dataset to use',
+                        choices=['celeba', 'mnist', 'cityscapes', 'nih', 'cov_nih', 'chexphoto'])
+    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--p', type=float, default=0.1, help='Task dropout probability')
-    parser.add_argument('--batch_size', type=int, default=12, help='Batch size')
-    parser.add_argument('--num_epochs', type=int, default=20, help='Epochs to train for.')
+    parser.add_argument('--batch_size', type=int, default=256, help='Batch size')
+    parser.add_argument('--num_epochs', type=int, default=100, help='Epochs to train for.')
     parser.add_argument('--optimizer', type=str, default='baseline', help='Optimiser to use',
                         choices=['pcgrad', "baseline", "imtl", "mgda", "mgda-ub", "graddrop", "ran-graddrop",
                                  "rlw-uniform", "rlw-normal", "rlw-dirichlet", "rlw-random_normal",
@@ -333,9 +326,9 @@ if __name__ == '__main__':
     parser.add_argument('--time_measurement_exp', action='store_true',
                         help="whether to only measure time (does not log training/validation losses/metrics)")
     parser.add_argument('--partial_dataset', type=bool, default=True, help='Use only part of NIH dataset')
-    parser.add_argument('--chexpert_labels', type=str, default='1', help='Chexpert labels to be used')
-    parser.add_argument('--task_labels', type=str, default='0_1_7_14', help='Chexpert task labels to be used')
-    parser.add_argument('--test_batch_size', type=int, default=2, help='Batch size')
+    parser.add_argument('--data_labels', type=str, default=True, help='NIH labels to be used')
+    parser.add_argument('--task_labels', type=str, default=True, help='NIH labels to be used')
+    parser.add_argument('--test_batch_size', type=int, default=16, help='Batch size')
     args = parser.parse_args()
 
     for i in range(args.n_runs):

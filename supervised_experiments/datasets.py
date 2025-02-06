@@ -272,7 +272,7 @@ def get_dataset(dataset, batch_size, configs, generator=None, worker_init_fn=Non
 
             train_loader = torch.utils.data.DataLoader(train_dst, batch_size=batch_size, shuffle=True, num_workers=4,
                                                        generator=generator, worker_init_fn=worker_init_fn)
-            val_loader = torch.utils.data.DataLoader(val_dst, batch_size=batch_size, num_workers=4,
+            val_loader = torch.utils.data.DataLoader(val_dst, batch_size=int(batch_size/4), num_workers=4,
                                                      generator=generator, worker_init_fn=worker_init_fn)
             return train_loader, val_loader
         else:
