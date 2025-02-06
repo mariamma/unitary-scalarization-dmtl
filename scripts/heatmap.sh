@@ -4,3 +4,5 @@ python supervised_experiments/ols_score.py  --heatmap_dir /scratch/mariamma/mtl/
 python supervised_experiments/ols_score.py  --heatmap_dir /scratch/mariamma/mtl/heatmap/Pne_Ple_Nor_Cov_baseline-lr:0.001-wd:0.0_playful-blaze-330/ --model_cam_name Pne_Ple_Nor_Cov_baseline-lr:0.001-wd:0.0_playful-blaze-330_Gradcam
 python supervised_experiments/ols_score.py  --heatmap_dir /scratch/mariamma/mtl/heatmap/Mas_Pne_Nor_Cov_baseline-lr:0.001-wd:0.0_lucky-monkey-333/ --model_cam_name Mas_Pne_Nor_Cov_baseline-lr:0.001-wd:0.0_lucky-monkey-333_Gradcam
 python supervised_experiments/ols_score.py  --heatmap_dir /scratch/mariamma/mtl/heatmap/Nod_Pne_Nor_Cov_baseline-lr:0.001-wd:0.0_copper-frost-336/ --model_cam_name Nod_Pne_Nor_Cov_baseline-lr:0.001-wd:0.0_copper-frost-336_Gradcam
+
+python supervised_experiments/ols_score.py  --heatmap_dir /scratch/mariamma/mtl/heatmap/Pne_Nor_Cov_baseline-lr:0.001-wd:0.0_magic-smoke-320/ --model_cam_name Pne_Nor_Cov_baseline-lr:0.001-wd:0.0_magic-smoke-320_Gradcam
